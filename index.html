@@ -401,6 +401,57 @@ tr:last-child td {
   width: auto;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 15, 40, 0.72);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: min(960px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(2, 12, 27, 0.55);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+#partyLedgerTableWrap {
+  padding: 0 24px 24px;
+  overflow: auto;
+}
+
 @media (max-width: 768px) {
   .app-shell {
     padding: 24px 16px 60px;
@@ -916,6 +967,11 @@ tr:last-child td {
                 <select id="personalAccount-category"></select>
               </div>
               <div class="field-row">
+                <label>Party / Account</label>
+                <input list="personalAccount-party-list" id="personalAccount-party" placeholder="e.g. Nazim Ali" />
+                <datalist id="personalAccount-party-list"></datalist>
+              </div>
+              <div class="field-row">
                 <label>Description</label>
                 <input type="text" id="personalAccount-description" placeholder="e.g. Grocery cash" />
               </div>
@@ -1058,6 +1114,7 @@ tr:last-child td {
                       <th>Role</th>
                       <th>Systems</th>
                       <th>Notes</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody id="party-table"></tbody>
@@ -1083,6 +1140,34 @@ tr:last-child td {
           </div>
         </section>
       </main>
+      <div id="partyLedgerOverlay" class="modal" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="partyLedgerTitle">
+          <header class="modal-header">
+            <h3 id="partyLedgerTitle">Party Ledger</h3>
+            <div class="modal-actions">
+              <button class="ghost-btn" id="partyLedgerExport">Export PDF</button>
+              <button class="ghost-btn" id="partyLedgerClose">Close</button>
+            </div>
+          </header>
+          <div class="table-wrap" id="partyLedgerTableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>System</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>In</th>
+                  <th>Out</th>
+                  <th>Balance</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="partyLedgerBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -1191,6 +1276,7 @@ tr:last-child td {
     depalpur: 'in',
     personalAccount: 'in',
   };
+  let activePartyLedger = '';
 
   init();
   refresh();
@@ -1208,6 +1294,7 @@ tr:last-child td {
     initFilters();
     initDirectoryForms();
     initReceivableTable();
+    initPartyLedgerModal();
 
     $('#workspaceNav .nav-btn').forEach((btn) => {
       btn.addEventListener('click', () => switchPanel(btn.dataset.panel));
@@ -1340,6 +1427,8 @@ tr:last-child td {
       event.preventDefault();
       const amount = toAmount($('#personal-amount').value);
       if (!amount) return alert('Enter an amount');
+      const party = ($('#personal-party').value || '').trim();
+      if (!party) return alert('Select a party for this entry');
 
       const entry = {
         date: $('#personal-date').value || today(),
@@ -1347,11 +1436,12 @@ tr:last-child td {
         amount,
         description: $('#personal-description').value.trim(),
         category: $('#personal-category').value,
-        party: ($('#personal-party').value || '').trim(),
+        party,
         notes: $('#personal-notes').value.trim(),
         linkedSystem: $('#personal-link').value || '',
       };
 
+      ensureParty(party, 'personalSavings', 'counterparty');
       const saved = createEntry('personalSavings', entry);
       if (isLiaqat(saved.party)) {
         recordLiaqatEntry(saved);
@@ -1393,6 +1483,7 @@ tr:last-child td {
       const amount = toAmount($('#game-amount').value);
       if (!amount) return alert('Enter an amount');
       const party = $('#game-party').value;
+      if (!party) return alert('Select a party or supplier');
       const entry = {
         date: $('#game-date').value || today(),
         direction: directions.game,
@@ -1404,7 +1495,7 @@ tr:last-child td {
         linkedSystem: $('#game-link').value || '',
       };
       const saved = createEntry('gameBusiness', entry);
-      if (party) ensureParty(party, 'gameBusiness', 'supplier');
+      ensureParty(party, 'gameBusiness', 'supplier');
       if (saved.linkedSystem) {
         createLinkedEntry(saved.linkedSystem, saved, 'gameBusiness');
       }
@@ -1426,6 +1517,7 @@ tr:last-child td {
       const amount = toAmount($('#depalpur-amount').value);
       if (!amount) return alert('Enter an amount');
       const party = $('#depalpur-party').value;
+      if (!party) return alert('Select a supplier or party');
       const entry = {
         date: $('#depalpur-date').value || today(),
         direction: directions.depalpur,
@@ -1437,7 +1529,7 @@ tr:last-child td {
         linkedSystem: $('#depalpur-link').value || '',
       };
       const saved = createEntry('depalpur', entry);
-      if (party) ensureParty(party, 'depalpur', 'supplier');
+      ensureParty(party, 'depalpur', 'supplier');
       if ($('#depalpur-liaqat').checked && saved.direction === 'out') {
         state.depalpur.liaqatPayable = round(
           Math.max(0, state.depalpur.liaqatPayable - saved.amount)
@@ -1504,17 +1596,19 @@ tr:last-child td {
       event.preventDefault();
       const amount = toAmount($('#personalAccount-amount').value);
       if (!amount) return alert('Enter an amount');
+      const party = ($('#personalAccount-party').value || '').trim();
       const entry = {
         date: $('#personalAccount-date').value || today(),
         direction: directions.personalAccount,
         amount,
         description: $('#personalAccount-description').value.trim(),
         category: $('#personalAccount-category').value,
-        party: '',
+        party,
         notes: $('#personalAccount-notes').value.trim(),
         linkedSystem: $('#personalAccount-link').value || '',
       };
       const saved = createEntry('personalAccount', entry);
+      if (party) ensureParty(party, 'personalAccount', 'other');
       if (saved.linkedSystem) {
         createLinkedEntry(saved.linkedSystem, saved, 'personalAccount');
       }
@@ -1669,6 +1763,7 @@ tr:last-child td {
 
   function renderPersonalAccount() {
     fillCategorySelect('personalAccount-category', 'personalAccount');
+    fillPartyOptions();
     updateCategoryFilter();
     const filter = $('#personalAccount-filter').value;
     const rows = buildLedgerRows(
@@ -1705,10 +1800,11 @@ tr:last-child td {
             <td>${escapeHtml(party.role)}</td>
             <td>${party.systems.map((s) => SYSTEM_LABELS[s] || s).join(', ')}</td>
             <td>${escapeHtml(party.notes || '')}</td>
+            <td><button class="ghost-btn" data-party-ledger="${escapeHtml(party.name)}">View ledger</button></td>
           </tr>`
           )
           .join('')
-      : emptyRow(4);
+      : emptyRow(5);
 
     $('#category-table').innerHTML = state.categories.length
       ? state.categories
@@ -1725,6 +1821,105 @@ tr:last-child td {
           )
           .join('')
       : emptyRow(4);
+  }
+
+  function initPartyLedgerModal() {
+    const table = $('#party-table');
+    if (table) {
+      table.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-party-ledger]');
+        if (!button) return;
+        const name = button.getAttribute('data-party-ledger');
+        if (name) openPartyLedger(name);
+      });
+    }
+
+    const overlay = $('#partyLedgerOverlay');
+    const closeBtn = $('#partyLedgerClose');
+    const exportBtn = $('#partyLedgerExport');
+    if (closeBtn) closeBtn.addEventListener('click', closePartyLedger);
+    if (overlay) {
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closePartyLedger();
+      });
+    }
+    if (exportBtn) exportBtn.addEventListener('click', exportPartyLedger);
+  }
+
+  function openPartyLedger(partyName) {
+    activePartyLedger = partyName;
+    const overlay = $('#partyLedgerOverlay');
+    if (!overlay) return;
+    $('#partyLedgerTitle').textContent = `${partyName} Ledger`;
+    const rows = buildPartyLedgerRows(partyName);
+    $('#partyLedgerBody').innerHTML = rows.length
+      ? rows.map(renderPartyLedgerRow).join('')
+      : emptyRow(8);
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePartyLedger() {
+    const overlay = $('#partyLedgerOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    activePartyLedger = '';
+  }
+
+  function buildPartyLedgerRows(partyName) {
+    const target = (partyName || '').toLowerCase();
+    const combined = [];
+    Object.keys(SYSTEM_LABELS).forEach((systemKey) => {
+      const ledger = state[systemKey]?.entries || [];
+      ledger.forEach((entry) => {
+        if ((entry.party || '').toLowerCase() === target) {
+          combined.push({ systemKey, entry });
+        }
+      });
+    });
+    const sorted = combined.sort((a, b) => {
+      if (a.entry.date === b.entry.date) return a.entry.createdAt - b.entry.createdAt;
+      return a.entry.date.localeCompare(b.entry.date);
+    });
+    let balance = 0;
+    return sorted.map(({ systemKey, entry }) => {
+      balance += entry.direction === 'in' ? entry.amount : -entry.amount;
+      return { systemKey, entry, balance };
+    });
+  }
+
+  function renderPartyLedgerRow({ systemKey, entry, balance }) {
+    return `
+      <tr>
+        <td>${escapeHtml(entry.date)}</td>
+        <td>${escapeHtml(SYSTEM_LABELS[systemKey] || systemKey)}</td>
+        <td>${escapeHtml(entry.description || '-')}</td>
+        <td>${escapeHtml(entry.category || '-')}</td>
+        <td>${entry.direction === 'in' ? formatMoney(entry.amount) : ''}</td>
+        <td>${entry.direction === 'out' ? formatMoney(entry.amount) : ''}</td>
+        <td>${formatMoney(balance)}</td>
+        <td>${escapeHtml(entry.notes || '')}</td>
+      </tr>`;
+  }
+
+  async function exportPartyLedger() {
+    if (!activePartyLedger) return;
+    const container = $('#partyLedgerTableWrap');
+    if (!container) return;
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#0b1120' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min((pageWidth - 40) / canvas.width, (pageHeight - 80) / canvas.height);
+    const imgWidth = canvas.width * ratio;
+    const imgHeight = canvas.height * ratio;
+    pdf.setFontSize(14);
+    pdf.text(`${activePartyLedger} Ledger`, 20, 28);
+    pdf.addImage(imgData, 'PNG', 20, 40, imgWidth, imgHeight);
+    pdf.save(`${activePartyLedger.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-ledger.pdf`);
   }
 
   function renderStockTable() {
@@ -1810,6 +2005,13 @@ tr:last-child td {
     personalList.innerHTML = partiesFor('personalSavings')
       .map((name) => `<option value="${escapeHtml(name)}"></option>`)
       .join('');
+
+    const personalAccountList = $('#personalAccount-party-list');
+    if (personalAccountList) {
+      personalAccountList.innerHTML = partiesFor('personalAccount')
+        .map((name) => `<option value="${escapeHtml(name)}"></option>`)
+        .join('');
+    }
 
     fillSelect('game-party', partiesFor('gameBusiness'), 'Select supplier');
     fillSelect('depalpur-party', partiesFor('depalpur'), 'Select party');

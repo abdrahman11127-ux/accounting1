@@ -36,7 +36,8 @@ The UI is 100% static. Choose any of the following options:
 3. When money moves between systems (for example, Personal Savings paying the Game Business), choose the linked business so the counterpart entry is created automatically.
 4. Use the **Liaqat & Sons widget** inside Personal Savings for quick give/receive entries – the receivable stays separate from Depalpur’s payable.
 5. Filter any ledger by supplier/party and press **Export PDF** to snapshot it (useful for sharing the Zubair Bhai ledger).
-6. Manage parties and categories in the Directory tab; they immediately appear in every form.
+6. Open the **party directory** to add new accounts (e.g., Liaqat & Sons) and click **View ledger** beside any name to review or export their cross-system statement.
+7. Manage parties and categories in the Directory tab; they immediately appear in every form and the relevant datalists.
 
 ## Regenerating the bundled HTML
 

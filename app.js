@@ -101,6 +101,7 @@
     depalpur: 'in',
     personalAccount: 'in',
   };
+  let activePartyLedger = '';
 
   init();
   refresh();
@@ -118,6 +119,7 @@
     initFilters();
     initDirectoryForms();
     initReceivableTable();
+    initPartyLedgerModal();
 
     $$('#workspaceNav .nav-btn').forEach((btn) => {
       btn.addEventListener('click', () => switchPanel(btn.dataset.panel));
@@ -250,6 +252,8 @@
       event.preventDefault();
       const amount = toAmount($('#personal-amount').value);
       if (!amount) return alert('Enter an amount');
+      const party = ($('#personal-party').value || '').trim();
+      if (!party) return alert('Select a party for this entry');
 
       const entry = {
         date: $('#personal-date').value || today(),
@@ -257,11 +261,12 @@
         amount,
         description: $('#personal-description').value.trim(),
         category: $('#personal-category').value,
-        party: ($('#personal-party').value || '').trim(),
+        party,
         notes: $('#personal-notes').value.trim(),
         linkedSystem: $('#personal-link').value || '',
       };
 
+      ensureParty(party, 'personalSavings', 'counterparty');
       const saved = createEntry('personalSavings', entry);
       if (isLiaqat(saved.party)) {
         recordLiaqatEntry(saved);
@@ -303,6 +308,7 @@
       const amount = toAmount($('#game-amount').value);
       if (!amount) return alert('Enter an amount');
       const party = $('#game-party').value;
+      if (!party) return alert('Select a party or supplier');
       const entry = {
         date: $('#game-date').value || today(),
         direction: directions.game,
@@ -314,7 +320,7 @@
         linkedSystem: $('#game-link').value || '',
       };
       const saved = createEntry('gameBusiness', entry);
-      if (party) ensureParty(party, 'gameBusiness', 'supplier');
+      ensureParty(party, 'gameBusiness', 'supplier');
       if (saved.linkedSystem) {
         createLinkedEntry(saved.linkedSystem, saved, 'gameBusiness');
       }
@@ -336,6 +342,7 @@
       const amount = toAmount($('#depalpur-amount').value);
       if (!amount) return alert('Enter an amount');
       const party = $('#depalpur-party').value;
+      if (!party) return alert('Select a supplier or party');
       const entry = {
         date: $('#depalpur-date').value || today(),
         direction: directions.depalpur,
@@ -347,7 +354,7 @@
         linkedSystem: $('#depalpur-link').value || '',
       };
       const saved = createEntry('depalpur', entry);
-      if (party) ensureParty(party, 'depalpur', 'supplier');
+      ensureParty(party, 'depalpur', 'supplier');
       if ($('#depalpur-liaqat').checked && saved.direction === 'out') {
         state.depalpur.liaqatPayable = round(
           Math.max(0, state.depalpur.liaqatPayable - saved.amount)
@@ -414,17 +421,19 @@
       event.preventDefault();
       const amount = toAmount($('#personalAccount-amount').value);
       if (!amount) return alert('Enter an amount');
+      const party = ($('#personalAccount-party').value || '').trim();
       const entry = {
         date: $('#personalAccount-date').value || today(),
         direction: directions.personalAccount,
         amount,
         description: $('#personalAccount-description').value.trim(),
         category: $('#personalAccount-category').value,
-        party: '',
+        party,
         notes: $('#personalAccount-notes').value.trim(),
         linkedSystem: $('#personalAccount-link').value || '',
       };
       const saved = createEntry('personalAccount', entry);
+      if (party) ensureParty(party, 'personalAccount', 'other');
       if (saved.linkedSystem) {
         createLinkedEntry(saved.linkedSystem, saved, 'personalAccount');
       }
@@ -579,6 +588,7 @@
 
   function renderPersonalAccount() {
     fillCategorySelect('personalAccount-category', 'personalAccount');
+    fillPartyOptions();
     updateCategoryFilter();
     const filter = $('#personalAccount-filter').value;
     const rows = buildLedgerRows(
@@ -615,10 +625,11 @@
             <td>${escapeHtml(party.role)}</td>
             <td>${party.systems.map((s) => SYSTEM_LABELS[s] || s).join(', ')}</td>
             <td>${escapeHtml(party.notes || '')}</td>
+            <td><button class="ghost-btn" data-party-ledger="${escapeHtml(party.name)}">View ledger</button></td>
           </tr>`
           )
           .join('')
-      : emptyRow(4);
+      : emptyRow(5);
 
     $('#category-table').innerHTML = state.categories.length
       ? state.categories
@@ -635,6 +646,105 @@
           )
           .join('')
       : emptyRow(4);
+  }
+
+  function initPartyLedgerModal() {
+    const table = $('#party-table');
+    if (table) {
+      table.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-party-ledger]');
+        if (!button) return;
+        const name = button.getAttribute('data-party-ledger');
+        if (name) openPartyLedger(name);
+      });
+    }
+
+    const overlay = $('#partyLedgerOverlay');
+    const closeBtn = $('#partyLedgerClose');
+    const exportBtn = $('#partyLedgerExport');
+    if (closeBtn) closeBtn.addEventListener('click', closePartyLedger);
+    if (overlay) {
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closePartyLedger();
+      });
+    }
+    if (exportBtn) exportBtn.addEventListener('click', exportPartyLedger);
+  }
+
+  function openPartyLedger(partyName) {
+    activePartyLedger = partyName;
+    const overlay = $('#partyLedgerOverlay');
+    if (!overlay) return;
+    $('#partyLedgerTitle').textContent = `${partyName} Ledger`;
+    const rows = buildPartyLedgerRows(partyName);
+    $('#partyLedgerBody').innerHTML = rows.length
+      ? rows.map(renderPartyLedgerRow).join('')
+      : emptyRow(8);
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePartyLedger() {
+    const overlay = $('#partyLedgerOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    activePartyLedger = '';
+  }
+
+  function buildPartyLedgerRows(partyName) {
+    const target = (partyName || '').toLowerCase();
+    const combined = [];
+    Object.keys(SYSTEM_LABELS).forEach((systemKey) => {
+      const ledger = state[systemKey]?.entries || [];
+      ledger.forEach((entry) => {
+        if ((entry.party || '').toLowerCase() === target) {
+          combined.push({ systemKey, entry });
+        }
+      });
+    });
+    const sorted = combined.sort((a, b) => {
+      if (a.entry.date === b.entry.date) return a.entry.createdAt - b.entry.createdAt;
+      return a.entry.date.localeCompare(b.entry.date);
+    });
+    let balance = 0;
+    return sorted.map(({ systemKey, entry }) => {
+      balance += entry.direction === 'in' ? entry.amount : -entry.amount;
+      return { systemKey, entry, balance };
+    });
+  }
+
+  function renderPartyLedgerRow({ systemKey, entry, balance }) {
+    return `
+      <tr>
+        <td>${escapeHtml(entry.date)}</td>
+        <td>${escapeHtml(SYSTEM_LABELS[systemKey] || systemKey)}</td>
+        <td>${escapeHtml(entry.description || '-')}</td>
+        <td>${escapeHtml(entry.category || '-')}</td>
+        <td>${entry.direction === 'in' ? formatMoney(entry.amount) : ''}</td>
+        <td>${entry.direction === 'out' ? formatMoney(entry.amount) : ''}</td>
+        <td>${formatMoney(balance)}</td>
+        <td>${escapeHtml(entry.notes || '')}</td>
+      </tr>`;
+  }
+
+  async function exportPartyLedger() {
+    if (!activePartyLedger) return;
+    const container = $('#partyLedgerTableWrap');
+    if (!container) return;
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#0b1120' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min((pageWidth - 40) / canvas.width, (pageHeight - 80) / canvas.height);
+    const imgWidth = canvas.width * ratio;
+    const imgHeight = canvas.height * ratio;
+    pdf.setFontSize(14);
+    pdf.text(`${activePartyLedger} Ledger`, 20, 28);
+    pdf.addImage(imgData, 'PNG', 20, 40, imgWidth, imgHeight);
+    pdf.save(`${activePartyLedger.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-ledger.pdf`);
   }
 
   function renderStockTable() {
@@ -720,6 +830,13 @@
     personalList.innerHTML = partiesFor('personalSavings')
       .map((name) => `<option value="${escapeHtml(name)}"></option>`)
       .join('');
+
+    const personalAccountList = $('#personalAccount-party-list');
+    if (personalAccountList) {
+      personalAccountList.innerHTML = partiesFor('personalAccount')
+        .map((name) => `<option value="${escapeHtml(name)}"></option>`)
+        .join('');
+    }
 
     fillSelect('game-party', partiesFor('gameBusiness'), 'Select supplier');
     fillSelect('depalpur-party', partiesFor('depalpur'), 'Select party');
