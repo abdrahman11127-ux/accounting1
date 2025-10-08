@@ -102,6 +102,13 @@
     personalAccount: 'in',
   };
   let activePartyLedger = '';
+  const editingState = {
+    personalSavings: null,
+    gameBusiness: null,
+    depalpur: null,
+    personalAccount: null,
+  };
+  const formSubmitButtons = {};
 
   init();
   refresh();
@@ -120,6 +127,8 @@
     initDirectoryForms();
     initReceivableTable();
     initPartyLedgerModal();
+    initLedgerActions();
+    cacheFormButtons();
 
     $$('#workspaceNav .nav-btn').forEach((btn) => {
       btn.addEventListener('click', () => switchPanel(btn.dataset.panel));
@@ -197,6 +206,7 @@
       party: entry.party || '',
       notes: entry.notes || '',
       linkedSystem: entry.linkedSystem || '',
+      liaqatPayment: !!entry.liaqatPayment,
       createdAt: entry.createdAt || Date.now(),
     };
   }
@@ -267,12 +277,19 @@
       };
 
       ensureParty(party, 'personalSavings', 'counterparty');
-      const saved = createEntry('personalSavings', entry);
-      if (isLiaqat(saved.party)) {
-        recordLiaqatEntry(saved);
-      }
-      if (saved.linkedSystem) {
-        createLinkedEntry(saved.linkedSystem, saved, 'personalSavings');
+      const editingId = editingState.personalSavings;
+      if (editingId) {
+        const updated = updateEntry('personalSavings', editingId, entry);
+        if (!updated) return alert('Entry could not be updated');
+        clearEditing('personalSavings');
+      } else {
+        const saved = createEntry('personalSavings', entry);
+        if (isLiaqat(saved.party)) {
+          recordLiaqatEntry(saved);
+        }
+        if (saved.linkedSystem) {
+          createLinkedEntry(saved.linkedSystem, saved, 'personalSavings');
+        }
       }
       saveAndRefresh();
       event.target.reset();
@@ -319,10 +336,17 @@
         notes: $('#game-notes').value.trim(),
         linkedSystem: $('#game-link').value || '',
       };
-      const saved = createEntry('gameBusiness', entry);
       ensureParty(party, 'gameBusiness', 'supplier');
-      if (saved.linkedSystem) {
-        createLinkedEntry(saved.linkedSystem, saved, 'gameBusiness');
+      const editingId = editingState.gameBusiness;
+      if (editingId) {
+        const updated = updateEntry('gameBusiness', editingId, entry);
+        if (!updated) return alert('Entry could not be updated');
+        clearEditing('gameBusiness');
+      } else {
+        const saved = createEntry('gameBusiness', entry);
+        if (saved.linkedSystem) {
+          createLinkedEntry(saved.linkedSystem, saved, 'gameBusiness');
+        }
       }
       saveAndRefresh();
       event.target.reset();
@@ -352,16 +376,20 @@
         party,
         notes: $('#depalpur-notes').value.trim(),
         linkedSystem: $('#depalpur-link').value || '',
+        liaqatPayment: $('#depalpur-liaqat').checked,
       };
-      const saved = createEntry('depalpur', entry);
       ensureParty(party, 'depalpur', 'supplier');
-      if ($('#depalpur-liaqat').checked && saved.direction === 'out') {
-        state.depalpur.liaqatPayable = round(
-          Math.max(0, state.depalpur.liaqatPayable - saved.amount)
-        );
-      }
-      if (saved.linkedSystem) {
-        createLinkedEntry(saved.linkedSystem, saved, 'depalpur');
+      const editingId = editingState.depalpur;
+      if (editingId) {
+        const updated = updateEntry('depalpur', editingId, entry);
+        if (!updated) return alert('Entry could not be updated');
+        clearEditing('depalpur');
+      } else {
+        const saved = createEntry('depalpur', entry);
+        adjustDepalpurLiaqat(null, saved);
+        if (saved.linkedSystem) {
+          createLinkedEntry(saved.linkedSystem, saved, 'depalpur');
+        }
       }
       saveAndRefresh();
       event.target.reset();
@@ -432,10 +460,17 @@
         notes: $('#personalAccount-notes').value.trim(),
         linkedSystem: $('#personalAccount-link').value || '',
       };
-      const saved = createEntry('personalAccount', entry);
       if (party) ensureParty(party, 'personalAccount', 'other');
-      if (saved.linkedSystem) {
-        createLinkedEntry(saved.linkedSystem, saved, 'personalAccount');
+      const editingId = editingState.personalAccount;
+      if (editingId) {
+        const updated = updateEntry('personalAccount', editingId, entry);
+        if (!updated) return alert('Entry could not be updated');
+        clearEditing('personalAccount');
+      } else {
+        const saved = createEntry('personalAccount', entry);
+        if (saved.linkedSystem) {
+          createLinkedEntry(saved.linkedSystem, saved, 'personalAccount');
+        }
       }
       saveAndRefresh();
       event.target.reset();
@@ -544,11 +579,13 @@
     const rows = buildLedgerRows(
       state.personalSavings.entries,
       filter,
-      state.personalSavings.openingBalance
+      state.personalSavings.openingBalance,
+      'party',
+      'personalSavings'
     );
     $('#personal-ledger').innerHTML = rows.length
       ? rows.map(renderLedgerRow).join('')
-      : emptyRow(8);
+      : emptyRow(9);
     $('#liaqat-balance').textContent = formatMoney(computeLiaqatBalance());
   }
 
@@ -557,8 +594,14 @@
     fillPartyOptions();
     updateFilterOptions('game-filter', state.gameBusiness.entries, 'supplier');
     const filter = $('#game-filter').value;
-    const rows = buildLedgerRows(state.gameBusiness.entries, filter, 0);
-    $('#game-ledger').innerHTML = rows.length ? rows.map(renderLedgerRow).join('') : emptyRow(8);
+    const rows = buildLedgerRows(
+      state.gameBusiness.entries,
+      filter,
+      0,
+      'party',
+      'gameBusiness'
+    );
+    $('#game-ledger').innerHTML = rows.length ? rows.map(renderLedgerRow).join('') : emptyRow(9);
     $('#game-balance').textContent = formatMoney(computeBalance(state.gameBusiness.entries));
     $('#game-equipment').textContent = formatMoney(sumByCategory(state.gameBusiness.entries, 'equipment'));
     $('#game-membership').textContent = formatMoney(sumByCategory(state.gameBusiness.entries, 'membership'));
@@ -569,10 +612,10 @@
     fillPartyOptions();
     updateFilterOptions('depalpur-filter', state.depalpur.entries, 'supplier');
     const filter = $('#depalpur-filter').value;
-    const rows = buildLedgerRows(state.depalpur.entries, filter, 0);
+    const rows = buildLedgerRows(state.depalpur.entries, filter, 0, 'party', 'depalpur');
     $('#depalpur-ledger').innerHTML = rows.length
       ? rows.map(renderLedgerRow).join('')
-      : emptyRow(8);
+      : emptyRow(9);
     $('#depalpur-balance').textContent = formatMoney(computeBalance(state.depalpur.entries));
     $('#depalpur-stock').textContent = formatMoney(computeStockValue());
     $('#depalpur-receivables').textContent = formatMoney(outstandingReceivables());
@@ -595,11 +638,12 @@
       state.personalAccount.entries,
       filter,
       0,
-      filter ? 'category' : null
+      filter ? 'category' : 'party',
+      'personalAccount'
     );
     $('#personalAccount-ledger').innerHTML = rows.length
       ? rows.map(renderLedgerRow).join('')
-      : emptyRow(7);
+      : emptyRow(9);
     const balance = computeBalance(state.personalAccount.entries);
     $('#personalAccount-balance').textContent = formatMoney(balance);
     $('#personalAccount-owed-game').textContent = formatMoney(
@@ -669,6 +713,21 @@
       });
     }
     if (exportBtn) exportBtn.addEventListener('click', exportPartyLedger);
+  }
+
+  function initLedgerActions() {
+    attachLedgerHandler('#personal-ledger', 'personalSavings');
+    attachLedgerHandler('#game-ledger', 'gameBusiness');
+    attachLedgerHandler('#depalpur-ledger', 'depalpur');
+    attachLedgerHandler('#personalAccount-ledger', 'personalAccount');
+  }
+
+  function cacheFormButtons() {
+    formSubmitButtons.personalSavings = $('#personalForm button[type="submit"]');
+    formSubmitButtons.gameBusiness = $('#gameForm button[type="submit"]');
+    formSubmitButtons.depalpur = $('#depalpurForm button[type="submit"]');
+    formSubmitButtons.personalAccount =
+      $('#personalAccountForm button[type="submit"]');
   }
 
   function openPartyLedger(partyName) {
@@ -838,8 +897,173 @@
         .join('');
     }
 
+    fillSelect('personal-party', partiesFor('personalSavings'), 'Select party');
     fillSelect('game-party', partiesFor('gameBusiness'), 'Select supplier');
     fillSelect('depalpur-party', partiesFor('depalpur'), 'Select party');
+  }
+
+  function attachLedgerHandler(selector, systemKey) {
+    const tbody = $(selector);
+    if (!tbody) return;
+    tbody.addEventListener('click', (event) => {
+      const editBtn = event.target.closest('button[data-edit-entry]');
+      if (editBtn) {
+        event.preventDefault();
+        handleEditAction(systemKey, editBtn.getAttribute('data-edit-entry'));
+        return;
+      }
+      const deleteBtn = event.target.closest('button[data-delete-entry]');
+      if (deleteBtn) {
+        event.preventDefault();
+        const id = deleteBtn.getAttribute('data-delete-entry');
+        if (id && confirm('Delete this entry?')) {
+          handleDeleteAction(systemKey, id);
+        }
+      }
+    });
+  }
+
+  function handleEditAction(systemKey, entryId) {
+    if (!entryId) return;
+    const ledger = state[systemKey]?.entries || [];
+    const entry = ledger.find((item) => item.id === entryId);
+    if (!entry) return;
+    startEditingEntry(systemKey, entry);
+  }
+
+  function handleDeleteAction(systemKey, entryId) {
+    const removed = removeEntry(systemKey, entryId);
+    if (!removed) return;
+    if (editingState[systemKey] === entryId) {
+      clearEditing(systemKey);
+      resetFormFor(systemKey);
+    }
+    saveAndRefresh();
+  }
+
+  function startEditingEntry(systemKey, entry) {
+    editingState[systemKey] = entry.id;
+    setFormButtonMode(systemKey, 'edit');
+    switch (systemKey) {
+      case 'personalSavings': {
+        setDirectionValue('personal', entry.direction);
+        $('#personal-date').value = entry.date;
+        $('#personal-amount').value = entry.amount;
+        ensureSelectValue('#personal-category', entry.category);
+        $('#personal-category').value = entry.category;
+        ensureSelectValue('#personal-party', entry.party);
+        $('#personal-party').value = entry.party;
+        $('#personal-description').value = entry.description || '';
+        $('#personal-notes').value = entry.notes || '';
+        $('#personal-link').value = entry.linkedSystem || '';
+        const form = $('#personalForm');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+      case 'gameBusiness': {
+        setDirectionValue('game', entry.direction);
+        $('#game-date').value = entry.date;
+        $('#game-amount').value = entry.amount;
+        ensureSelectValue('#game-category', entry.category);
+        $('#game-category').value = entry.category;
+        ensureSelectValue('#game-party', entry.party);
+        $('#game-party').value = entry.party;
+        $('#game-description').value = entry.description || '';
+        $('#game-notes').value = entry.notes || '';
+        $('#game-link').value = entry.linkedSystem || '';
+        const form = $('#gameForm');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+      case 'depalpur': {
+        setDirectionValue('depalpur', entry.direction);
+        $('#depalpur-date').value = entry.date;
+        $('#depalpur-amount').value = entry.amount;
+        ensureSelectValue('#depalpur-category', entry.category);
+        $('#depalpur-category').value = entry.category;
+        ensureSelectValue('#depalpur-party', entry.party);
+        $('#depalpur-party').value = entry.party;
+        $('#depalpur-description').value = entry.description || '';
+        $('#depalpur-notes').value = entry.notes || '';
+        $('#depalpur-link').value = entry.linkedSystem || '';
+        $('#depalpur-liaqat').checked = !!entry.liaqatPayment;
+        const form = $('#depalpurForm');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+      case 'personalAccount': {
+        setDirectionValue('personalAccount', entry.direction);
+        $('#personalAccount-date').value = entry.date;
+        $('#personalAccount-amount').value = entry.amount;
+        ensureSelectValue('#personalAccount-category', entry.category);
+        $('#personalAccount-category').value = entry.category;
+        $('#personalAccount-party').value = entry.party || '';
+        $('#personalAccount-description').value = entry.description || '';
+        $('#personalAccount-notes').value = entry.notes || '';
+        $('#personalAccount-link').value = entry.linkedSystem || '';
+        const form = $('#personalAccountForm');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  function setFormButtonMode(systemKey, mode) {
+    const button = formSubmitButtons[systemKey];
+    if (!button) return;
+    button.textContent = mode === 'edit' ? 'Update Entry' : 'Save Entry';
+  }
+
+  function clearEditing(systemKey) {
+    editingState[systemKey] = null;
+    setFormButtonMode(systemKey, 'add');
+  }
+
+  function resetFormFor(systemKey) {
+    if (systemKey === 'personalSavings') {
+      const form = $('#personalForm');
+      if (form) {
+        form.reset();
+        setToday('#personal-date');
+        setDirectionDefault('personal');
+      }
+    } else if (systemKey === 'gameBusiness') {
+      const form = $('#gameForm');
+      if (form) {
+        form.reset();
+        setToday('#game-date');
+        setDirectionDefault('game');
+      }
+    } else if (systemKey === 'depalpur') {
+      const form = $('#depalpurForm');
+      if (form) {
+        form.reset();
+        setToday('#depalpur-date');
+        setDirectionDefault('depalpur');
+      }
+    } else if (systemKey === 'personalAccount') {
+      const form = $('#personalAccountForm');
+      if (form) {
+        form.reset();
+        setToday('#personalAccount-date');
+        setDirectionDefault('personalAccount');
+      }
+    }
+  }
+
+  function ensureSelectValue(selector, value) {
+    if (!value) return;
+    const select = $(selector);
+    if (!select) return;
+    const exists = Array.from(select.options).some((option) => option.value === value);
+    if (!exists) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+    }
   }
 
   function fillCategorySelect(selectId, systemKey) {
@@ -889,7 +1113,7 @@
   }
 
   function recordLiaqatEntry(entry) {
-    state.personalSavings.liaqatEntries.push({ ...entry });
+    syncLiaqatLedger(null, entry);
   }
 
   function createLinkedEntry(targetKey, sourceEntry, sourceKey) {
@@ -904,8 +1128,131 @@
       notes: sourceEntry.notes ? `${sourceEntry.notes} (linked)` : 'Linked transfer',
       linkedSystem: sourceKey,
       createdAt: sourceEntry.createdAt,
+      liaqatPayment: false,
     };
     createEntry(targetKey, entry);
+  }
+
+  function syncLinkedEntries(systemKey, previous, next) {
+    const prevLink = previous?.linkedSystem;
+    const nextLink = next?.linkedSystem;
+    if (prevLink && (!nextLink || nextLink !== prevLink)) {
+      removeLinkedCounterpart(systemKey, previous);
+    }
+    if (!nextLink) return;
+    const targetLedger = state[nextLink]?.entries;
+    if (!targetLedger) return;
+    const matchTime = previous?.createdAt ?? next?.createdAt;
+    let counterpart = targetLedger.find(
+      (item) => item.linkedSystem === systemKey && item.createdAt === matchTime
+    );
+    if (!counterpart) {
+      createLinkedEntry(nextLink, next, systemKey);
+      return;
+    }
+    counterpart.date = next.date;
+    counterpart.direction = next.direction === 'in' ? 'out' : 'in';
+    counterpart.amount = next.amount;
+    counterpart.description =
+      next.description || `Linked transfer from ${SYSTEM_LABELS[systemKey]}`;
+    counterpart.category = 'Linked Transfer';
+    counterpart.party = SYSTEM_LABELS[systemKey];
+    counterpart.notes = next.notes ? `${next.notes} (linked)` : 'Linked transfer';
+    counterpart.linkedSystem = systemKey;
+    counterpart.liaqatPayment = false;
+  }
+
+  function removeLinkedCounterpart(systemKey, entry) {
+    if (!entry || !entry.linkedSystem) return;
+    const targetKey = entry.linkedSystem;
+    const targetLedger = state[targetKey]?.entries;
+    if (!targetLedger) return;
+    const index = targetLedger.findIndex(
+      (item) => item.linkedSystem === systemKey && item.createdAt === entry.createdAt
+    );
+    if (index === -1) return;
+    const [removed] = targetLedger.splice(index, 1);
+    syncLiaqatLedger(removed, null);
+    adjustDepalpurLiaqat(removed, null);
+    if (editingState[targetKey] === removed.id) {
+      clearEditing(targetKey);
+      resetFormFor(targetKey);
+    }
+  }
+
+  function syncLiaqatLedger(previous, next) {
+    const list = state.personalSavings.liaqatEntries;
+    const prevIs = previous && isLiaqat(previous.party);
+    const nextIs = next && isLiaqat(next.party);
+    const findIndex = (id) => list.findIndex((item) => item.id === id);
+    if (prevIs) {
+      const idx = findIndex(previous.id);
+      if (nextIs) {
+        if (idx !== -1) {
+          list[idx] = { ...next };
+        } else {
+          list.push({ ...next });
+        }
+      } else if (idx !== -1) {
+        list.splice(idx, 1);
+      }
+    } else if (nextIs) {
+      const idx = findIndex(next.id);
+      if (idx !== -1) {
+        list[idx] = { ...next };
+      } else {
+        list.push({ ...next });
+      }
+    }
+  }
+
+  function adjustDepalpurLiaqat(previous, next) {
+    const prevAmount =
+      previous && previous.liaqatPayment && previous.direction === 'out'
+        ? previous.amount
+        : 0;
+    const nextAmount =
+      next && next.liaqatPayment && next.direction === 'out' ? next.amount : 0;
+    state.depalpur.liaqatPayable = round(
+      Math.max(0, state.depalpur.liaqatPayable + prevAmount - nextAmount)
+    );
+  }
+
+  function updateEntry(systemKey, entryId, updates) {
+    const ledger = state[systemKey]?.entries;
+    if (!ledger) return null;
+    const index = ledger.findIndex((item) => item.id === entryId);
+    if (index === -1) return null;
+    const previous = ledger[index];
+    const merged = {
+      ...previous,
+      ...updates,
+      id: previous.id,
+      createdAt: previous.createdAt,
+      liaqatPayment:
+        typeof updates.liaqatPayment === 'boolean'
+          ? updates.liaqatPayment
+          : previous.liaqatPayment,
+    };
+    const normalised = normaliseEntry(merged);
+    normalised.liaqatPayment = merged.liaqatPayment;
+    ledger[index] = normalised;
+    syncLinkedEntries(systemKey, previous, normalised);
+    syncLiaqatLedger(previous, normalised);
+    adjustDepalpurLiaqat(previous, normalised);
+    return normalised;
+  }
+
+  function removeEntry(systemKey, entryId) {
+    const ledger = state[systemKey]?.entries;
+    if (!ledger) return null;
+    const index = ledger.findIndex((item) => item.id === entryId);
+    if (index === -1) return null;
+    const [removed] = ledger.splice(index, 1);
+    syncLinkedEntries(systemKey, removed, null);
+    syncLiaqatLedger(removed, null);
+    adjustDepalpurLiaqat(removed, null);
+    return removed;
   }
 
   function computeBalance(entries, opening = 0) {
@@ -965,7 +1312,13 @@
     );
   }
 
-  function buildLedgerRows(entries, filter, opening = 0, filterField = 'party') {
+  function buildLedgerRows(
+    entries,
+    filter,
+    opening = 0,
+    filterField = 'party',
+    systemKey = ''
+  ) {
     const sorted = entries.slice().sort((a, b) => {
       if (a.date === b.date) return a.createdAt - b.createdAt;
       return a.date.localeCompare(b.date);
@@ -973,16 +1326,17 @@
     let balance = opening;
     const rows = [];
     sorted.forEach((entry) => {
-      if (filter && entry[filterField] !== filter) return;
+      const field = filterField || 'party';
+      if (filter && entry[field] !== filter) return;
       balance += entry.direction === 'in' ? entry.amount : -entry.amount;
-      rows.push({ entry, balance });
+      rows.push({ entry, balance, systemKey });
     });
     return rows;
   }
 
-  function renderLedgerRow({ entry, balance }) {
+  function renderLedgerRow({ entry, balance, systemKey }) {
     return `
-      <tr>
+      <tr data-entry-id="${escapeHtml(entry.id)}" data-system="${escapeHtml(systemKey || '')}">
         <td>${escapeHtml(entry.date)}</td>
         <td>${escapeHtml(entry.description || '-')}</td>
         <td>${escapeHtml(entry.category || '-')}</td>
@@ -991,6 +1345,12 @@
         <td>${entry.direction === 'out' ? formatMoney(entry.amount) : ''}</td>
         <td>${formatMoney(balance)}</td>
         <td>${escapeHtml(entry.notes || '')}</td>
+        <td>
+          <div class="table-actions">
+            <button class="ghost-btn" data-edit-entry="${escapeHtml(entry.id)}">Edit</button>
+            <button class="ghost-btn danger" data-delete-entry="${escapeHtml(entry.id)}">Delete</button>
+          </div>
+        </td>
       </tr>`;
   }
 
@@ -1042,9 +1402,13 @@
   }
 
   function setDirectionDefault(key) {
-    directions[key] = 'in';
+    setDirectionValue(key, 'in');
+  }
+
+  function setDirectionValue(key, direction) {
+    directions[key] = direction === 'out' ? 'out' : 'in';
     $$('.pill[data-target="' + key + '"]').forEach((pill) => {
-      pill.classList.toggle('active', pill.dataset.dir === 'in');
+      pill.classList.toggle('active', pill.dataset.dir === directions[key]);
     });
   }
 

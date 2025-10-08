@@ -252,6 +252,23 @@ textarea:focus {
   border-color: rgba(56, 189, 248, 0.4);
 }
 
+.ghost-btn.danger {
+  color: var(--danger);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.ghost-btn.danger:hover {
+  color: #fff;
+  background: rgba(248, 113, 113, 0.18);
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .pill-toggle {
   display: inline-flex;
   background: rgba(148, 163, 184, 0.12);
