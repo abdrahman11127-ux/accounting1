@@ -407,6 +407,35 @@
                 <button type="submit" class="ghost-btn">Add</button>
               </form>
             </div>
+
+            <div class="card quick-card">
+              <h3>Quick business calculator</h3>
+              <p class="helper-text">
+                Plug in the latest receivables, payables, stock, and worker advances without posting ledger entries.
+              </p>
+              <div class="quick-grid">
+                <label class="quick-row">
+                  <span>Customer receivables</span>
+                  <input type="number" id="depalpur-quick-receivables" min="0" step="0.01" placeholder="0" />
+                </label>
+                <label class="quick-row">
+                  <span>Supplier payables</span>
+                  <input type="number" id="depalpur-quick-payables" min="0" step="0.01" placeholder="0" />
+                </label>
+                <label class="quick-row">
+                  <span>Stock value</span>
+                  <input type="number" id="depalpur-quick-stock" min="0" step="0.01" placeholder="0" />
+                </label>
+                <label class="quick-row">
+                  <span>Worker advances</span>
+                  <input type="number" id="depalpur-quick-worker" min="0" step="0.01" placeholder="0" />
+                </label>
+                <div class="quick-row total">
+                  <span>Total business value</span>
+                  <span id="depalpur-quick-total">PKR 0</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="card ledger-card">

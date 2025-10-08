@@ -335,6 +335,52 @@ textarea:focus {
   margin-top: 12px;
 }
 
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quick-card .helper-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.quick-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.quick-row span {
+  font-size: 0.9rem;
+}
+
+.quick-row input {
+  max-width: 160px;
+  text-align: right;
+}
+
+.quick-row.total {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.32);
+}
+
+.quick-row.total span:last-child {
+  font-weight: 600;
+}
+
 .checkbox-group {
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 12px;

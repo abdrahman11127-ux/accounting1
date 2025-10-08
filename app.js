@@ -86,6 +86,12 @@
       stock: [],
       receivables: [],
       liaqatPayable: 0,
+      quickPad: {
+        receivables: 0,
+        payables: 0,
+        stock: 0,
+        worker: 0,
+      },
     },
     personalAccount: {
       entries: [],
@@ -125,6 +131,7 @@
     initForms();
     initFilters();
     initDirectoryForms();
+    initDepalpurQuickPad();
     initReceivableTable();
     initPartyLedgerModal();
     initLedgerActions();
@@ -160,6 +167,12 @@
           stock: (parsed.depalpur?.stock || []).map(normaliseStock),
           receivables: (parsed.depalpur?.receivables || []).map(normaliseReceivable),
           liaqatPayable: Number(parsed.depalpur?.liaqatPayable || 0),
+          quickPad: {
+            receivables: Number(parsed.depalpur?.quickPad?.receivables || 0),
+            payables: Number(parsed.depalpur?.quickPad?.payables || 0),
+            stock: Number(parsed.depalpur?.quickPad?.stock || 0),
+            worker: Number(parsed.depalpur?.quickPad?.worker || 0),
+          },
         },
         personalAccount: {
           entries: (parsed.personalAccount?.entries || []).map(normaliseEntry),
@@ -534,6 +547,26 @@
     });
   }
 
+  function initDepalpurQuickPad() {
+    const fields = [
+      ['receivables', '#depalpur-quick-receivables'],
+      ['payables', '#depalpur-quick-payables'],
+      ['stock', '#depalpur-quick-stock'],
+      ['worker', '#depalpur-quick-worker'],
+    ];
+
+    fields.forEach(([key, selector]) => {
+      const input = $(selector);
+      if (!input) return;
+      input.addEventListener('input', () => {
+        const pad = getQuickPad();
+        pad[key] = input.value === '' ? 0 : toAmount(input.value);
+        saveState();
+        updateDepalpurQuickTotal();
+      });
+    });
+  }
+
   function initReceivableTable() {
     $('#receivable-table').addEventListener('click', (event) => {
       const button = event.target.closest('button[data-receivable]');
@@ -625,8 +658,35 @@
       computeStockValue() +
       outstandingReceivables();
     $('#depalpur-net').textContent = formatMoney(net);
+    renderDepalpurQuickPad();
     renderStockTable();
     renderReceivables();
+  }
+
+  function renderDepalpurQuickPad() {
+    const pad = getQuickPad();
+    const fields = [
+      ['receivables', '#depalpur-quick-receivables'],
+      ['payables', '#depalpur-quick-payables'],
+      ['stock', '#depalpur-quick-stock'],
+      ['worker', '#depalpur-quick-worker'],
+    ];
+
+    fields.forEach(([key, selector]) => {
+      const input = $(selector);
+      if (!input) return;
+      const value = pad[key];
+      input.value = value ? value : '';
+    });
+
+    updateDepalpurQuickTotal();
+  }
+
+  function updateDepalpurQuickTotal() {
+    const pad = getQuickPad();
+    const total = round(pad.receivables + pad.stock + pad.worker - pad.payables);
+    const output = $('#depalpur-quick-total');
+    if (output) output.textContent = formatMoney(total);
   }
 
   function renderPersonalAccount() {
@@ -843,6 +903,13 @@
           )
           .join('')
       : emptyRow(3);
+  }
+
+  function getQuickPad() {
+    if (!state.depalpur.quickPad) {
+      state.depalpur.quickPad = { receivables: 0, payables: 0, stock: 0, worker: 0 };
+    }
+    return state.depalpur.quickPad;
   }
 
   function updatePersonalFilterOptions() {

@@ -35,10 +35,11 @@ The UI is 100% static. Choose any of the following options:
 2. Each panel has a single **Cash In / Cash Out** toggle with the minimum number of fields.
 3. When money moves between systems (for example, Personal Savings paying the Game Business), choose the linked business so the counterpart entry is created automatically.
 4. Use the **Liaqat & Sons widget** inside Personal Savings for quick give/receive entries – the receivable stays separate from Depalpur’s payable.
-5. Use the **Edit** and **Delete** buttons in each ledger row to correct mistakes; linked transfers, Liaqat balances, and counter-ledgers stay in sync automatically.
-6. Filter any ledger by supplier/party and press **Export PDF** to snapshot it (useful for sharing the Zubair Bhai ledger).
-7. Open the **party directory** to add new accounts (e.g., Liaqat & Sons) and click **View ledger** beside any name to review or export their cross-system statement.
-8. Manage parties and categories in the Directory tab; they immediately appear in every form and the relevant datalists.
+5. Use the **Depalpur quick calculator** to plug in current receivables, payables, stock, and worker advances without touching the ledgers – the total business value updates instantly.
+6. Use the **Edit** and **Delete** buttons in each ledger row to correct mistakes; linked transfers, Liaqat balances, and counter-ledgers stay in sync automatically.
+7. Filter any ledger by supplier/party and press **Export PDF** to snapshot it (useful for sharing the Zubair Bhai ledger).
+8. Open the **party directory** to add new accounts (e.g., Liaqat & Sons) and click **View ledger** beside any name to review or export their cross-system statement.
+9. Manage parties and categories in the Directory tab; they immediately appear in every form and the relevant datalists.
 
 ## Regenerating the bundled HTML
 
