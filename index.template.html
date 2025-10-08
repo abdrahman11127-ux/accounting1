@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi-System Finance Manager</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header class="top-header">
+        <div class="brand">
+            <h1>Multi-System Finance Manager</h1>
+            <p>
+                Monitor personal savings, the game lounge, Depalpur distribution, and personal spending with linked cash
+                ledgers, supplier tracking, and receivable insights.
+            </p>
+        </div>
+        <section class="summary" id="summaryCards">
+            <article class="summary-card">
+                <h2>Personal Savings</h2>
+                <p class="balance" id="summaryPersonalSavings">PKR 0</p>
+                <p class="hint">Owner capital remaining after transfers and supplier payments.</p>
+            </article>
+            <article class="summary-card">
+                <h2>Game Business</h2>
+                <p class="balance" id="summaryGameBusiness">PKR 0</p>
+                <p class="hint">Cash on hand excluding equipment assets.</p>
+            </article>
+            <article class="summary-card">
+                <h2>Depalpur Distribution</h2>
+                <p class="balance" id="summaryDepalpur">PKR 0</p>
+                <p class="hint">Net position covers cash + stock + receivables; Liaqat payable is tracked separately.</p>
+            </article>
+            <article class="summary-card">
+                <h2>Personal Account</h2>
+                <p class="balance" id="summaryPersonalAccount">PKR 0</p>
+                <p class="hint">Cash available for personal expenses after draws and repayments.</p>
+            </article>
+        </section>
+    </header>
+
+    <main>
+        <section id="dashboard" class="view active">
+            <header class="section-header">
+                <h2>Choose a workspace</h2>
+                <p>Select one of the systems below to record cash movements or review ledgers.</p>
+            </header>
+            <div class="system-grid">
+                <button class="system-tile" data-target="personalSavings">
+                    <span class="tile-title">Personal Savings</span>
+                    <span class="tile-amount" id="tilePersonalSavings">PKR 0</span>
+                    <span class="tile-hint">Opening capital PKR 1,000,000</span>
+                </button>
+                <button class="system-tile" data-target="gameBusiness">
+                    <span class="tile-title">Game Business</span>
+                    <span class="tile-amount" id="tileGameBusiness">PKR 0</span>
+                    <span class="tile-hint">Memberships, M purchases, and equipment</span>
+                </button>
+                <button class="system-tile" data-target="depalpur">
+                    <span class="tile-title">Depalpur Distribution</span>
+                    <span class="tile-amount" id="tileDepalpur">PKR 0</span>
+                    <span class="tile-hint">Suppliers: Kehkashan Mehndi &amp; Olympia Chemical</span>
+                </button>
+                <button class="system-tile" data-target="personalAccount">
+                    <span class="tile-title">Personal Account</span>
+                    <span class="tile-amount" id="tilePersonalAccount">PKR 0</span>
+                    <span class="tile-hint">Track salary, draws, and repayments</span>
+                </button>
+                <button class="system-tile" data-target="directory">
+                    <span class="tile-title">Directory &amp; Categories</span>
+                    <span class="tile-amount" id="tileDirectory">Stay organised</span>
+                    <span class="tile-hint">Manage suppliers, workers, and custom categories</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="view-personalSavings" class="view">
+            <header class="section-header">
+                <div>
+                    <h2>Personal Savings Ledger</h2>
+                    <p>Opening balance PKR 1,000,000. Transfers automatically update the destination system.</p>
+                </div>
+                <button class="back-button" data-target="dashboard">Back to dashboard</button>
+            </header>
+
+            <div class="metrics-row">
+                <article class="metric">
+                    <span class="label">Opening Balance</span>
+                    <span class="value">PKR 1,000,000</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Current Balance</span>
+                    <span class="value" id="personalSavingsBalance">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Transfers to Businesses</span>
+                    <span class="value" id="personalSavingsTransfers">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Liaqat &amp; Sons Receivable</span>
+                    <span class="value" id="personalSavingsLiaqat">PKR 0</span>
+                </article>
+            </div>
+
+            <div class="panel-grid">
+                <form id="personalSavingsForm" class="card">
+                    <h3>Record Entry</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Date</span>
+                            <input type="date" name="date" required />
+                        </label>
+                        <label>
+                            <span>Description</span>
+                            <input type="text" name="description" placeholder="e.g. Transfer to Game Business" required />
+                        </label>
+                        <label>
+                            <span>Category</span>
+                            <select name="category" required>
+                                <option value="capitalInjection">Capital Injection</option>
+                                <option value="transferGame">Transfer to Game Business</option>
+                                <option value="transferDepalpur">Transfer to Depalpur Distribution</option>
+                                <option value="transferPersonal">Transfer to Personal Account</option>
+                                <option value="paymentLiaqat">Payment to Liaqat &amp; Sons</option>
+                                <option value="paymentSupplier">Payment to Supplier</option>
+                                <option value="liaqatAdvance">Advance to Liaqat &amp; Sons</option>
+                                <option value="liaqatRepayment">Repayment from Liaqat &amp; Sons</option>
+                                <option value="refund">Income / Refund</option>
+                                <option value="other">Other Expense</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Counterparty</span>
+                            <input type="text" name="counterparty" list="personalParties" placeholder="e.g. Liaqat &amp; Sons" />
+                            <datalist id="personalParties"></datalist>
+                        </label>
+                        <label>
+                            <span>Direction</span>
+                            <select name="direction" required>
+                                <option value="out">Cash Out</option>
+                                <option value="in">Cash In</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Amount (PKR)</span>
+                            <input type="number" name="amount" min="0" step="0.01" required />
+                        </label>
+                        <div class="supplier-routing">
+                            <label>
+                                <span>Link to Business</span>
+                                <select name="supplierSystem">
+                                    <option value="">No linked business</option>
+                                    <option value="gameBusiness">Game Business</option>
+                                    <option value="depalpur">Depalpur Distribution</option>
+                                </select>
+                            </label>
+                            <label class="checkbox-field reduce-liaqat">
+                                <input type="checkbox" name="reduceLiaqat" />
+                                <span>Reduce Liaqat &amp; Sons receivable with this payment</span>
+                            </label>
+                        </div>
+                        <label class="notes">
+                            <span>Notes</span>
+                            <textarea name="notes" rows="2" placeholder="Optional details"></textarea>
+                        </label>
+                    </div>
+                    <p class="form-hint">Payments to Liaqat &amp; Sons reduce the payable tracked in the Depalpur Distribution workspace.</p>
+                    <button type="submit" class="primary">Save Ledger Entry</button>
+                </form>
+
+                <article class="card">
+                    <h3>Category Totals</h3>
+                    <ul class="breakdown" id="personalSavingsBreakdown"></ul>
+                </article>
+
+                <form id="liaqatReceivableForm" class="card">
+                    <h3>Quick Liaqat &amp; Sons Entry</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Date</span>
+                            <input type="date" name="date" required />
+                        </label>
+                        <label>
+                            <span>Action</span>
+                            <select name="action" required>
+                                <option value="advance">Amount given to Liaqat &amp; Sons</option>
+                                <option value="repayment">Repayment received from Liaqat &amp; Sons</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Amount (PKR)</span>
+                            <input type="number" name="amount" min="0" step="0.01" required />
+                        </label>
+                        <label class="notes">
+                            <span>Notes</span>
+                            <textarea name="notes" rows="2" placeholder="Optional context"></textarea>
+                        </label>
+                    </div>
+                    <p class="form-hint">Creates a matching personal savings ledger entry and updates the receivable balance.</p>
+                    <button type="submit" class="primary">Add Liaqat Entry</button>
+                </form>
+            </div>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <h3>Ledger</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Counterparty</th>
+                            <th>Inflow</th>
+                            <th>Outflow</th>
+                            <th>Balance</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="personalSavingsTable"></tbody>
+                </table>
+            </article>
+        </section>
+
+        <section id="view-gameBusiness" class="view">
+            <header class="section-header">
+                <div>
+                    <h2>Game Business Operations</h2>
+                    <p>Track memberships, M purchases, equipment, supplier payments, and game income.</p>
+                </div>
+                <button class="back-button" data-target="dashboard">Back to dashboard</button>
+            </header>
+
+            <div class="metrics-row">
+                <article class="metric">
+                    <span class="label">Cash Balance</span>
+                    <span class="value" id="gameCashBalance">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Equipment Assets</span>
+                    <span class="value" id="gameEquipmentValue">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Membership Spend</span>
+                    <span class="value" id="gameMembershipSpend">PKR 0</span>
+                </article>
+            </div>
+
+            <form id="gameEntryForm" class="card">
+                <h3>Record Cash Movement</h3>
+                <div class="form-grid">
+                    <label>
+                        <span>Date</span>
+                        <input type="date" name="date" required />
+                    </label>
+                    <label>
+                        <span>Flow Type</span>
+                        <select name="flow" required>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Category</span>
+                        <select name="category" required>
+                            <option value="membership">Membership Cost</option>
+                            <option value="mPurchase">M Purchase</option>
+                            <option value="equipment">Computer Equipment</option>
+                            <option value="otherExpense">Other Expense</option>
+                            <option value="sales">Sales Income</option>
+                            <option value="otherIncome">Other Income</option>
+                            <option value="transferFromPersonal">Transfer from Personal Savings</option>
+                            <option value="transferFromPersonalAccount">Transfer from Personal Account</option>
+                        </select>
+                    </label>
+                    <label class="supplier-field">
+                        <span>Supplier</span>
+                        <input type="text" name="supplier" list="gameSuppliers" placeholder="e.g. Zubair Bhai" />
+                        <datalist id="gameSuppliers"></datalist>
+                    </label>
+                    <label>
+                        <span>Description</span>
+                        <input type="text" name="description" placeholder="e.g. Monthly memberships" />
+                    </label>
+                    <label class="m-field">
+                        <span>Total M Purchased</span>
+                        <input type="number" name="totalM" min="0" step="0.01" />
+                    </label>
+                    <label class="m-field">
+                        <span>Price per M (PKR)</span>
+                        <input type="number" name="pricePerM" min="0" step="0.01" />
+                    </label>
+                    <label class="amount-field">
+                        <span>Amount (PKR)</span>
+                        <input type="number" name="amount" min="0" step="0.01" required />
+                    </label>
+                    <label class="equipment-field">
+                        <span>Equipment Name</span>
+                        <input type="text" name="equipmentName" placeholder="e.g. Gaming PC" />
+                    </label>
+                    <label class="notes">
+                        <span>Notes</span>
+                        <textarea name="notes" rows="2" placeholder="Optional notes"></textarea>
+                    </label>
+                </div>
+                <p class="form-hint">Equipment purchases are capitalised automatically. Transfers from Personal Savings or Personal Account are created in those ledgers as well.</p>
+                <button type="submit" class="primary">Save Entry</button>
+            </form>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <h3>Game Cash Ledger</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Supplier / Source</th>
+                            <th>Inflow</th>
+                            <th>Outflow</th>
+                            <th>Balance</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="gameLedgerTable"></tbody>
+                </table>
+            </article>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <h3>Equipment Register</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Item</th>
+                            <th>Cost</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipmentTable"></tbody>
+                </table>
+            </article>
+        </section>
+
+        <section id="view-depalpur" class="view">
+            <header class="section-header">
+                <div>
+                    <h2>Depalpur Distribution</h2>
+                    <p>Manage supplier payments, inventory, receivables, and Liaqat &amp; Sons payable.</p>
+                </div>
+                <button class="back-button" data-target="dashboard">Back to dashboard</button>
+            </header>
+
+            <div class="metrics-row">
+                <article class="metric">
+                    <span class="label">Cash Balance</span>
+                    <span class="value" id="depalpurCashBalance">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Stock Value</span>
+                    <span class="value" id="depalpurStockValue">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Receivables Outstanding</span>
+                    <span class="value" id="depalpurReceivables">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Liaqat Payable</span>
+                    <span class="value" id="depalpurLiaqat">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Net Position (excl. Liaqat payable)</span>
+                    <span class="value" id="depalpurNet">PKR 0</span>
+                </article>
+            </div>
+
+            <div class="panel-grid">
+                <form id="depalpurCashForm" class="card">
+                    <h3>Record Cash Movement</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Date</span>
+                            <input type="date" name="date" required />
+                        </label>
+                        <label>
+                            <span>Flow Type</span>
+                            <select name="flow" required>
+                                <option value="expense">Expense</option>
+                                <option value="income">Income</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Category</span>
+                            <select name="category" required>
+                                <option value="supplierPayment">Supplier Payment</option>
+                                <option value="stockPurchase">Stock Purchase</option>
+                                <option value="receivableCollection">Receivable Collection</option>
+                                <option value="transferFromPersonal">Transfer from Personal Savings</option>
+                                <option value="transferFromPersonalAccount">Transfer from Personal Account</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Supplier / Source</span>
+                            <input type="text" name="party" list="depalpurSuppliers" placeholder="e.g. Kehkashan Mehndi" />
+                            <datalist id="depalpurSuppliers"></datalist>
+                        </label>
+                        <label>
+                            <span>Description</span>
+                            <input type="text" name="description" placeholder="e.g. Chemical drums" />
+                        </label>
+                        <label>
+                            <span>Amount (PKR)</span>
+                            <input type="number" name="amount" min="0" step="0.01" required />
+                        </label>
+                        <label class="notes">
+                            <span>Notes</span>
+                            <textarea name="notes" rows="2" placeholder="Optional details"></textarea>
+                        </label>
+                        <label class="checkbox-field">
+                            <input type="checkbox" name="liaqatPayment" />
+                            <span>Payment relates to Liaqat &amp; Sons payable</span>
+                        </label>
+                    </div>
+                    <p class="form-hint">Mark Liaqat &amp; Sons payments to reduce the outstanding payable automatically.</p>
+                    <button type="submit" class="primary">Save Cash Entry</button>
+                </form>
+
+                <form id="depalpurStockForm" class="card">
+                    <h3>Update Stock</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Date</span>
+                            <input type="date" name="date" required />
+                        </label>
+                        <label>
+                            <span>Description</span>
+                            <input type="text" name="description" placeholder="e.g. Added 50 cartons" required />
+                        </label>
+                        <label>
+                            <span>Change Type</span>
+                            <select name="direction" required>
+                                <option value="increase">Increase Stock</option>
+                                <option value="decrease">Decrease Stock</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Value (PKR)</span>
+                            <input type="number" name="value" min="0" step="0.01" required />
+                        </label>
+                    </div>
+                    <button type="submit" class="primary">Update Stock</button>
+                </form>
+
+                <form id="depalpurReceivableForm" class="card">
+                    <h3>Add Customer Receivable</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Date</span>
+                            <input type="date" name="date" required />
+                        </label>
+                        <label>
+                            <span>Customer</span>
+                            <input type="text" name="customer" placeholder="Customer name" required />
+                        </label>
+                        <label>
+                            <span>Amount (PKR)</span>
+                            <input type="number" name="amount" min="0" step="0.01" required />
+                        </label>
+                        <label class="notes">
+                            <span>Notes</span>
+                            <textarea name="notes" rows="2" placeholder="Optional details"></textarea>
+                        </label>
+                    </div>
+                    <button type="submit" class="primary">Add Receivable</button>
+                </form>
+
+                <form id="liaqatForm" class="card">
+                    <h3>Adjust Liaqat &amp; Sons Payable</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Reason</span>
+                            <select name="action" required>
+                                <option value="increase">Increase payable (goods on credit)</option>
+                                <option value="decrease">Decrease payable (manual adjustment)</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Amount (PKR)</span>
+                            <input type="number" name="amount" min="0" step="0.01" required />
+                        </label>
+                        <label class="notes">
+                            <span>Notes</span>
+                            <textarea name="notes" rows="2" placeholder="Optional details"></textarea>
+                        </label>
+                    </div>
+                    <button type="submit" class="primary">Update Payable</button>
+                </form>
+            </div>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <div>
+                        <h3>Depalpur Cash Ledger</h3>
+                        <p class="table-note" id="depalpurRangeNote"></p>
+                    </div>
+                    <div class="table-controls">
+                        <label>
+                            <span>From</span>
+                            <input type="date" id="depalpurFilterFrom" data-keep-empty="true" />
+                        </label>
+                        <label>
+                            <span>To</span>
+                            <input type="date" id="depalpurFilterTo" data-keep-empty="true" />
+                        </label>
+                        <button type="button" class="button-ghost" id="depalpurFilterClear">Clear</button>
+                        <button type="button" class="button-ghost accent" id="depalpurExportCsv">Export CSV</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Party</th>
+                            <th>Inflow</th>
+                            <th>Outflow</th>
+                            <th>Balance</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="depalpurCashTable"></tbody>
+                </table>
+            </article>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <h3>Stock Movements</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Direction</th>
+                            <th>Value</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="depalpurStockTable"></tbody>
+                </table>
+            </article>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <h3>Customer Receivables</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="depalpurReceivableTable"></tbody>
+                </table>
+            </article>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <h3>Depalpur Parties Snapshot</h3>
+                    <p class="hint">Positive balances mean the party owes Depalpur; negative balances mean you owe them.</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Party</th>
+                            <th>Role</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="depalpurPartyTable"></tbody>
+                </table>
+            </article>
+        </section>
+
+        <section id="view-directory" class="view">
+            <header class="section-header">
+                <div>
+                    <h2>Directory &amp; Category Manager</h2>
+                    <p>
+                        Maintain a single list of suppliers, workers, and customers linked to each business. Balances show net
+                        cash paid out (positive) or collected (negative) per system so you can see who currently owes money.
+                    </p>
+                </div>
+                <button class="back-button" data-target="dashboard">Back to dashboard</button>
+            </header>
+
+            <div class="panel-grid">
+                <form id="directoryPartyForm" class="card">
+                    <h3>Add Party</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Name</span>
+                            <input type="text" name="name" placeholder="e.g. Nazim Ali" required />
+                        </label>
+                        <label>
+                            <span>Role</span>
+                            <select name="role" required>
+                                <option value="supplier">Supplier</option>
+                                <option value="worker">Worker</option>
+                                <option value="customer">Customer</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </label>
+                        <div class="system-checkboxes">
+                            <span class="legend">Linked Systems</span>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="personalSavings" checked />
+                                <span>Personal Savings</span>
+                            </label>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="gameBusiness" />
+                                <span>Game Business</span>
+                            </label>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="depalpur" />
+                                <span>Depalpur Distribution</span>
+                            </label>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="personalAccount" />
+                                <span>Personal Account</span>
+                            </label>
+                        </div>
+                        <label class="notes">
+                            <span>Notes</span>
+                            <textarea name="notes" rows="2" placeholder="Optional details"></textarea>
+                        </label>
+                    </div>
+                    <p class="form-hint">Systems determine where the party shows up in datalists and balance summaries.</p>
+                    <button type="submit" class="primary">Save Party</button>
+                </form>
+
+                <article class="card table-card">
+                    <div class="table-header">
+                        <h3>Party Directory</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Linked Systems</th>
+                                <th>Balances</th>
+                                <th>Notes</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="directoryPartyTable"></tbody>
+                    </table>
+                </article>
+            </div>
+
+            <div class="panel-grid">
+                <form id="directoryCategoryForm" class="card">
+                    <h3>Add Custom Category</h3>
+                    <div class="form-grid">
+                        <label>
+                            <span>Category Name</span>
+                            <input type="text" name="name" placeholder="e.g. Worker Advance" required />
+                        </label>
+                        <label>
+                            <span>Flow Type</span>
+                            <select name="flow" required>
+                                <option value="expense">Expense / Cash Out</option>
+                                <option value="income">Income / Cash In</option>
+                            </select>
+                        </label>
+                        <div class="system-checkboxes">
+                            <span class="legend">Available In</span>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="personalSavings" />
+                                <span>Personal Savings</span>
+                            </label>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="gameBusiness" />
+                                <span>Game Business</span>
+                            </label>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="depalpur" />
+                                <span>Depalpur Distribution</span>
+                            </label>
+                            <label class="checkbox-field">
+                                <input type="checkbox" name="systems" value="personalAccount" />
+                                <span>Personal Account</span>
+                            </label>
+                        </div>
+                        <label class="notes">
+                            <span>Notes</span>
+                            <textarea name="notes" rows="2" placeholder="Optional guidance"></textarea>
+                        </label>
+                    </div>
+                    <p class="form-hint">Leave systems unchecked to make the category available everywhere.</p>
+                    <button type="submit" class="primary">Save Category</button>
+                </form>
+
+                <article class="card table-card">
+                    <div class="table-header">
+                        <h3>Custom Categories</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Flow</th>
+                                <th>Systems</th>
+                                <th>Notes</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="directoryCategoryTable"></tbody>
+                    </table>
+                </article>
+            </div>
+        </section>
+
+        <section id="view-personalAccount" class="view">
+            <header class="section-header">
+                <div>
+                    <h2>Personal Account</h2>
+                    <p>Record salary, personal spending, cash draws from businesses, and repayments.</p>
+                </div>
+                <button class="back-button" data-target="dashboard">Back to dashboard</button>
+            </header>
+
+            <div class="metrics-row">
+                <article class="metric">
+                    <span class="label">Cash Balance</span>
+                    <span class="value" id="personalAccountBalance">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Owed to Game Business</span>
+                    <span class="value" id="owedGame">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Owed to Depalpur</span>
+                    <span class="value" id="owedDepalpur">PKR 0</span>
+                </article>
+                <article class="metric">
+                    <span class="label">Owed to Personal Savings</span>
+                    <span class="value" id="owedSavings">PKR 0</span>
+                </article>
+            </div>
+
+            <form id="personalAccountForm" class="card">
+                <h3>Record Personal Entry</h3>
+                <div class="form-grid">
+                    <label>
+                        <span>Date</span>
+                        <input type="date" name="date" required />
+                    </label>
+                    <label>
+                        <span>Cash Direction</span>
+                        <select name="direction" required>
+                            <option value="in">Cash In</option>
+                            <option value="out">Cash Out</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Category</span>
+                        <select name="category" required>
+                            <option value="salary">Salary / Other Income</option>
+                            <option value="drawGame">Draw from Game Business</option>
+                            <option value="drawDepalpur">Draw from Depalpur Distribution</option>
+                            <option value="drawSavings">Draw from Personal Savings</option>
+                            <option value="repayGame">Repay Game Business</option>
+                            <option value="repayDepalpur">Repay Depalpur Distribution</option>
+                            <option value="repaySavings">Repay Personal Savings</option>
+                            <option value="expense">Personal Expense</option>
+                            <option value="transferToSavings">Transfer to Personal Savings</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </label>
+                    <label class="checkbox-field" id="salaryCheckbox">
+                        <input type="checkbox" name="treatAsSalary" />
+                        <span>Treat this draw as salary (do not create amount owed)</span>
+                    </label>
+                    <label>
+                        <span>Description</span>
+                        <input type="text" name="description" placeholder="e.g. Grocery cash" />
+                    </label>
+                    <label>
+                        <span>Amount (PKR)</span>
+                        <input type="number" name="amount" min="0" step="0.01" required />
+                    </label>
+                    <label class="notes">
+                        <span>Notes</span>
+                        <textarea name="notes" rows="2" placeholder="Optional details"></textarea>
+                    </label>
+                </div>
+                <p class="form-hint">Draws automatically deduct from the selected business. Unchecked draws add to the amount you owe that system.</p>
+                <button type="submit" class="primary">Save Personal Entry</button>
+            </form>
+
+            <article class="card table-card">
+                <div class="table-header">
+                    <h3>Personal Cash Ledger</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Inflow</th>
+                            <th>Outflow</th>
+                            <th>Balance</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="personalAccountTable"></tbody>
+                </table>
+            </article>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
