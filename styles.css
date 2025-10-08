@@ -324,6 +324,26 @@ textarea:focus {
   font-weight: 600;
 }
 
+.stat-block .value.positive {
+  color: var(--success);
+}
+
+.stat-block .value.negative {
+  color: var(--danger);
+}
+
+.stat-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
 .inline-field {
   display: flex;
   gap: 10px;

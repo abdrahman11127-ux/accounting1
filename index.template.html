@@ -161,6 +161,18 @@
                 <span class="value" id="liaqat-balance">PKR 0</span>
               </div>
             </form>
+
+            <div class="card stats-card">
+              <h3>Linked Business Balances</h3>
+              <p class="muted">
+                Transfers to other systems appear here as receivables or payables.
+              </p>
+              <div class="stat-block">
+                <span class="label">Total receivable</span>
+                <span class="value" id="personal-total-receivable">PKR 0</span>
+              </div>
+              <div id="personal-linked-stats" class="stat-stack"></div>
+            </div>
           </div>
 
           <div class="card ledger-card">
@@ -263,6 +275,11 @@
                 <span class="label">Membership spend</span>
                 <span class="value" id="game-membership">PKR 0</span>
               </div>
+              <div class="stat-block">
+                <span class="label">Total receivable from other systems</span>
+                <span class="value" id="game-total-receivable">PKR 0</span>
+              </div>
+              <div id="game-linked-stats" class="stat-stack"></div>
               <p class="muted">
                 Use the supplier filter in the ledger below and press Export PDF to download
                 the Zubair Bhai ledger or any other supplier.
@@ -382,6 +399,11 @@
                 <span class="label">Net (excl. Liaqat payable)</span>
                 <span class="value" id="depalpur-net">PKR 0</span>
               </div>
+              <div class="stat-block">
+                <span class="label">Total receivable from other systems</span>
+                <span class="value" id="depalpur-total-receivable">PKR 0</span>
+              </div>
+              <div id="depalpur-linked-stats" class="stat-stack"></div>
               <form id="liaqatPayableForm" class="inline-form">
                 <label for="liaqatPayable-action">Adjust Liaqat payable</label>
                 <select id="liaqatPayable-action">
@@ -563,17 +585,10 @@
                 <span class="value" id="personalAccount-balance">PKR 0</span>
               </div>
               <div class="stat-block">
-                <span class="label">Owed to Game Business</span>
-                <span class="value" id="personalAccount-owed-game">PKR 0</span>
+                <span class="label">Total receivable from other systems</span>
+                <span class="value" id="personalAccount-total-receivable">PKR 0</span>
               </div>
-              <div class="stat-block">
-                <span class="label">Owed to Depalpur</span>
-                <span class="value" id="personalAccount-owed-depalpur">PKR 0</span>
-              </div>
-              <div class="stat-block">
-                <span class="label">Owed to Personal Savings</span>
-                <span class="value" id="personalAccount-owed-savings">PKR 0</span>
-              </div>
+              <div id="personalAccount-linked-stats" class="stat-stack"></div>
             </div>
           </div>
 

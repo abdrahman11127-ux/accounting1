@@ -275,8 +275,11 @@
       event.preventDefault();
       const amount = toAmount($('#personal-amount').value);
       if (!amount) return alert('Enter an amount');
-      const party = ($('#personal-party').value || '').trim();
-      if (!party) return alert('Select a party for this entry');
+      const rawParty = ($('#personal-party').value || '').trim();
+      const linkedSystem = $('#personal-link').value || '';
+      if (!rawParty && !linkedSystem) return alert('Select a party for this entry');
+
+      const party = rawParty || SYSTEM_LABELS[linkedSystem] || 'Linked Business';
 
       const entry = {
         date: $('#personal-date').value || today(),
@@ -286,10 +289,12 @@
         category: $('#personal-category').value,
         party,
         notes: $('#personal-notes').value.trim(),
-        linkedSystem: $('#personal-link').value || '',
+        linkedSystem,
       };
 
-      ensureParty(party, 'personalSavings', 'counterparty');
+      if (rawParty) {
+        ensureParty(rawParty, 'personalSavings', 'counterparty');
+      }
       const editingId = editingState.personalSavings;
       if (editingId) {
         const updated = updateEntry('personalSavings', editingId, entry);
@@ -620,6 +625,11 @@
       ? rows.map(renderLedgerRow).join('')
       : emptyRow(9);
     $('#liaqat-balance').textContent = formatMoney(computeLiaqatBalance());
+    renderLinkedSummaryForSystem(
+      'personalSavings',
+      '#personal-linked-stats',
+      '#personal-total-receivable'
+    );
   }
 
   function renderGame() {
@@ -638,6 +648,7 @@
     $('#game-balance').textContent = formatMoney(computeBalance(state.gameBusiness.entries));
     $('#game-equipment').textContent = formatMoney(sumByCategory(state.gameBusiness.entries, 'equipment'));
     $('#game-membership').textContent = formatMoney(sumByCategory(state.gameBusiness.entries, 'membership'));
+    renderLinkedSummaryForSystem('gameBusiness', '#game-linked-stats', '#game-total-receivable');
   }
 
   function renderDepalpur() {
@@ -658,6 +669,7 @@
       computeStockValue() +
       outstandingReceivables();
     $('#depalpur-net').textContent = formatMoney(net);
+    renderLinkedSummaryForSystem('depalpur', '#depalpur-linked-stats', '#depalpur-total-receivable');
     renderDepalpurQuickPad();
     renderStockTable();
     renderReceivables();
@@ -706,14 +718,10 @@
       : emptyRow(9);
     const balance = computeBalance(state.personalAccount.entries);
     $('#personalAccount-balance').textContent = formatMoney(balance);
-    $('#personalAccount-owed-game').textContent = formatMoney(
-      computeLinkedBalance(state.personalAccount.entries, 'gameBusiness')
-    );
-    $('#personalAccount-owed-depalpur').textContent = formatMoney(
-      computeLinkedBalance(state.personalAccount.entries, 'depalpur')
-    );
-    $('#personalAccount-owed-savings').textContent = formatMoney(
-      computeLinkedBalance(state.personalAccount.entries, 'personalSavings')
+    renderLinkedSummaryForSystem(
+      'personalAccount',
+      '#personalAccount-linked-stats',
+      '#personalAccount-total-receivable'
     );
   }
 
@@ -1331,13 +1339,46 @@
     );
   }
 
-  function computeLinkedBalance(entries, systemKey) {
-    return round(
-      entries.reduce((total, entry) => {
-        if (entry.linkedSystem !== systemKey) return total;
-        return total + (entry.direction === 'in' ? entry.amount : -entry.amount);
-      }, 0)
-    );
+  function computeReceivablesBySystem(systemKey) {
+    const ledger = state[systemKey]?.entries || [];
+    const totals = {};
+    ledger.forEach((entry) => {
+      if (!entry.linkedSystem) return;
+      const other = entry.linkedSystem;
+      const signed = entry.direction === 'out' ? entry.amount : -entry.amount;
+      totals[other] = round((totals[other] || 0) + signed);
+    });
+    return totals;
+  }
+
+  function renderLinkedSummaryForSystem(systemKey, containerSelector, totalSelector) {
+    const container = $(containerSelector);
+    const totalNode = $(totalSelector);
+    if (!container || !totalNode) return;
+
+    const totals = computeReceivablesBySystem(systemKey);
+    const otherSystems = Object.keys(SYSTEM_LABELS).filter((key) => key !== systemKey);
+    let totalReceivable = 0;
+
+    const blocks = otherSystems
+      .map((otherKey) => {
+        const amount = round(totals[otherKey] || 0);
+        const labelPrefix = amount >= 0 ? 'Receivable from' : 'Payable to';
+        const label = `${labelPrefix} ${SYSTEM_LABELS[otherKey]}`;
+        if (amount > 0) totalReceivable += amount;
+        return `
+          <div class="stat-block">
+            <span class="label">${escapeHtml(label)}</span>
+            <span class="value${amount < 0 ? ' negative' : amount > 0 ? ' positive' : ''}">${formatMoney(
+          Math.abs(amount)
+        )}</span>
+          </div>
+        `;
+      })
+      .join('');
+
+    totalNode.textContent = formatMoney(totalReceivable);
+    container.innerHTML = blocks || '<p class="muted empty-note">No linked transfers yet.</p>';
   }
 
   function computeStockValue() {
