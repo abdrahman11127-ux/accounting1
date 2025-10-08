@@ -16,8 +16,15 @@ All records are stored locally in the browser using `localStorage`, so no server
 
 ### Run the app locally
 
-The project is a static, browser-based dashboard. You can either double-click the
-`index.html` file or serve the repository with any static file server. Examples:
+The project is a static, browser-based dashboard. There are two easy ways to
+open it:
+
+- **Single-file bundle (`standalone.html`)** – open this file directly in any
+  modern browser (even on mobile). It inlines all styles and scripts so the UI
+  renders correctly without needing the accompanying assets.
+- **Multi-file source (`index.html`)** – use this when you are editing the
+  project. Either double-click the file or serve the repository with any static
+  file server so that relative asset paths resolve. Examples:
 
 - **Python** (ships with macOS/Linux and is available on Windows via the
   Microsoft Store):
@@ -36,12 +43,12 @@ The project is a static, browser-based dashboard. You can either double-click th
   serve .
   ```
 
-  The CLI prints the local URL (usually <http://localhost:3000>).
+ The CLI prints the local URL (usually <http://localhost:3000>).
 
 ### Using the dashboard
 
-1. Open the local URL (or the `index.html` file) in Chrome, Edge, Firefox, or
-   Safari.
+1. Open the local URL (or `standalone.html` / `index.html`) in Chrome, Edge,
+   Firefox, or Safari.
 2. Use the dashboard cards to open the detailed workspace for each system.
 3. Submit forms to record movements. Built-in automation keeps the ledgers in
    sync when you link transactions between systems.
@@ -60,6 +67,18 @@ browser. To verify changes:
    browser.
 4. Optionally open the developer console to confirm there are no runtime
    errors.
+
+### Regenerating the single-file bundle
+
+If you change `styles.css`, `app.js`, or `index.html`, run the helper script to
+refresh `standalone.html`:
+
+```bash
+node scripts/build-standalone.js
+```
+
+Commit the regenerated file so end users can continue opening a single HTML
+document without needing a local web server.
 
 ## Key design decisions
 
