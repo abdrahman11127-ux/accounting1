@@ -1,95 +1,66 @@
-# Integrated Finance Manager
+# Multi-System Finance Manager
 
-This project delivers a browser-based command centre for managing cash, expenses, assets, receivables, and payables across multiple business setups:
+A lightweight browser app for tracking cash in / cash out across four linked setups:
 
-- **Personal Savings Ledger** &ndash; monitors capital movements from the original PKR&nbsp;1,000,000 pool and links transfers to the other ledgers.
-- **Liaqat &amp; Sons receivable tracking** &ndash; records advances and repayments separately from business payables so you can see the outstanding balance at a glance.
-- **Game Business** &ndash; captures operating expenses, M purchases, memberships, computer equipment, and income with automatic supplier management.
-- **Depalpur Distribution** &ndash; tracks supplier purchases, liabilities (with special attention to Liaqat &amp; Sons), stock adjustments, cash, customer receivables, and provides a parties snapshot for workers, suppliers, and customers.
-- **Personal Account** &ndash; records personal spending, salary draws, and inter-company transfers from any business system.
-- **Directory &amp; category manager** &ndash; maintain shared lists of suppliers, workers, and custom categories linked to each system for faster data entry.
-- **Consolidated Reports** &ndash; highlights net positions, cash balances, outstanding payables, receivables, and spending breakdowns at a glance.
+- **Personal Savings** – starts with PKR 1,000,000 capital, records transfers into the other businesses, and keeps the Liaqat & Sons receivable separate from everything else.
+- **Game Business** – captures daily income and expenses with a supplier dropdown (Zubair Bhai is preloaded) and can export the supplier ledger to PDF.
+- **Depalpur Distribution** – logs cash movements, stock adjustments, customer receivables, and Liaqat payable without letting the payable distort the net business figure.
+- **Personal Account** – tracks personal salary, spending, and amounts temporarily owed back to each business after a cash draw.
 
-All records are stored locally in the browser using `localStorage`, so no server component is required.
+A shared directory panel lets you add suppliers, workers, and custom categories once and reuse them throughout the app.
 
-## Getting started
+All data lives in the browser via `localStorage`, so no database or back-end is required.
 
-### Run the app locally
+## Running the app
 
-The project is a static, browser-based dashboard. There are two easy ways to
-open it:
+The UI is 100% static. Choose any of the following options:
 
-- **Generated single-file pages (`index.html` and `standalone.html`)** – open
-  either file directly in any modern browser (even on mobile). Both files
-  inline the CSS and JavaScript so the UI renders correctly without needing the
-  accompanying assets.
-- **Editable template (`index.template.html`)** – use this when you are working
-  on the markup. Open it directly or serve the repository with any static file
-  server so the linked assets resolve. Examples:
-
-- **Python** (ships with macOS/Linux and is available on Windows via the
-  Microsoft Store):
+- **Open `index.html` or `standalone.html` directly.** Both files inline the CSS and JavaScript so they work offline (handy for quick bookkeeping on a laptop or phone).
+- **Serve the editable sources.** If you want live reload or plan to modify the markup, use `index.template.html` with a tiny HTTP server:
 
   ```bash
-  cd /path/to/accounting1
+  # Python (macOS/Linux)
   python -m http.server 8000
-  ```
 
-  Then browse to <http://localhost:8000>.
-
-- **Node.js** using [`serve`](https://www.npmjs.com/package/serve):
-
-  ```bash
+  # or Node.js using the serve package
   npm install --global serve
   serve .
   ```
 
- The CLI prints the local URL (usually <http://localhost:3000>).
+  Then visit the printed localhost URL in your browser.
 
-### Using the dashboard
+## Using the dashboards
 
-1. Open the local URL (or `index.html` / `standalone.html`) in Chrome, Edge,
-   Firefox, or Safari.
-2. Use the dashboard cards to open the detailed workspace for each system.
-3. Submit forms to record movements. Built-in automation keeps the ledgers in
-   sync when you link transactions between systems.
-4. Data is persisted in the same browser. Clear the browser storage or use the
-   in-app backup/restore controls to reset or migrate data.
+1. Open the Dashboard tab and pick the workspace you want to update.
+2. Each panel has a single **Cash In / Cash Out** toggle with the minimum number of fields.
+3. When money moves between systems (for example, Personal Savings paying the Game Business), choose the linked business so the counterpart entry is created automatically.
+4. Use the **Liaqat & Sons widget** inside Personal Savings for quick give/receive entries – the receivable stays separate from Depalpur’s payable.
+5. Filter any ledger by supplier/party and press **Export PDF** to snapshot it (useful for sharing the Zubair Bhai ledger).
+6. Manage parties and categories in the Directory tab; they immediately appear in every form.
 
-## Testing
+## Regenerating the bundled HTML
 
-There is no automated test suite because the application runs entirely in the
-browser. To verify changes:
-
-1. Start the static server (or open `index.html`).
-2. Walk through key flows, such as adding expenses or settling supplier
-   balances, and confirm the summary cards update immediately.
-3. Use the backup/export buttons to ensure downloads still function in your
-   browser.
-4. Optionally open the developer console to confirm there are no runtime
-   errors.
-
-### Regenerating the single-file bundle
-
-`index.html` and `standalone.html` are generated files. If you change
-`styles.css`, `app.js`, or `index.template.html`, run the helper script to
-regenerate them both:
+`index.html` and `standalone.html` are generated from the template, stylesheet, and script. After editing `index.template.html`, `styles.css`, or `app.js`, rerun the helper:
 
 ```bash
 node scripts/build-standalone.js
 ```
 
-Commit the regenerated files so end users can continue opening a single HTML
-document without needing a local web server.
+Commit the regenerated files so end users can continue opening a single HTML document.
 
-## Key design decisions
+## Manual testing checklist
 
-- **Professional dashboard layout** with responsive cards and detail panels for a desktop-like feel.
-- **Cross-system automation** to mirror transfers between ledgers and keep cash positions aligned without double entry bookkeeping.
-- **Supplier and party management** letting you extend the default lists (Zubair Bhai, Kehkashan Mehndi, Olympia Chemical, Liaqat &amp; Sons, Nazim Ali) with custom names tied to specific ledgers.
-- **External settlement handling** keeps cash ledgers accurate by marking personal-savings-funded supplier payments as non-cash adjustments in the destination system while still reducing supplier balances.
-- **Integrated exports and backup** via per-ledger CSV downloads and JSON backup/restore controls.
-- **Depalpur cash ledger filters** include quick date range selectors and CSV export so you can reconcile periods or share activity snapshots without manual copy/paste.
-- **Net business value calculation** for the Depalpur Distribution hub honours the Liaqat &amp; Sons payable requirement by excluding it from the net figure while still showing the outstanding liability.
+Because the interface runs entirely in the browser there’s no automated test suite. Manually verify the main flows after you make changes:
 
-Feel free to extend the JavaScript data model to introduce authentication, reporting, or data export features if you need to scale beyond a single user/device.
+1. Record cash in / out for each workspace and confirm balances update immediately.
+2. Link a transfer between Personal Savings and Game Business and ensure both ledgers receive entries with opposite directions.
+3. Add a Liaqat entry and check the outstanding receivable value.
+4. Add a new supplier via the Game Business quick button and confirm it appears in the dropdowns and the Directory list.
+5. Export a ledger to PDF (especially the Zubair Bhai view) to make sure the snapshot downloads successfully.
+
+## Design notes
+
+- **Single-step forms** keep data entry fast while still supporting linked transfers.
+- **Shared party and category directory** avoids retyping supplier names across systems.
+- **Liaqat-specific handling** mirrors the original requirement: the receivable lives in Personal Savings, while Depalpur’s Liaqat payable is tracked separately and excluded from the net position.
+- **LocalStorage persistence** means you can take backups by saving the page or exporting PDFs without setting up a server.
