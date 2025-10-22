@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.example'
+version = '0.1.0'
+
+def runeliteVersion = '1.10.2'
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 11
+}
+
+tasks.withType(Jar).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri('https://repo.runelite.net')
+    }
+}
+
+dependencies {
+    compileOnly group: 'net.runelite', name: 'client', version: runeliteVersion
+    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.11.0'
+}
+
