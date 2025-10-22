@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+def runeliteVersion = '1.10.5'
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri('https://repo.runelite.net')
+    }
+}
+
+dependencies {
+    compileOnly "net.runelite:client:$runeliteVersion"
+    compileOnly "net.runelite:api:$runeliteVersion"
+
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    compileOnly 'com.google.guava:guava:31.1-jre'
+
+    testImplementation 'junit:junit:4.13.2'
+}
+
+application {
+    mainClass = 'com.example.discordidle.monitor.PlayerStatusMonitorApp'
+}
+
